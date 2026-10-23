@@ -1,0 +1,36 @@
+# 依赖
+node_modules/
+
+# 密钥与运行时数据（严禁入库）
+.env
+.env.*
+!.env.example
+# 线索数据库目录整个不入库（含 leads.db 及其备份）
+server/data/
+*.db
+*.db-*
+*.sqlite
+
+# 构建产物（由 npm run build 从 src/ 重建）
+public/
+
+# 备份文件
+*.bak
+*.bak.*
+*.bak2
+*.bak.a*
+*.bak_*
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器
+.vscode/
+.idea/
+
+# 日志
+logs/
+*.log
+npm-debug.log*

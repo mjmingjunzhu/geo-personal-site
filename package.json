@@ -1,0 +1,22 @@
+{
+  "name": "geo-personal-site",
+  "version": "1.0.0",
+  "description": "对搜索引擎和 AI 友好的中文个人网站框架：内容写在一个文件里，一条命令生成整站静态网页",
+  "private": true,
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./src/style.css -o ./public/style.css --minify",
+    "build:html": "node ./src/build.js",
+    "build": "npm run build:css && npm run build:html",
+    "start": "node serve.js",
+    "server": "node server/index.js"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^18.0.8",
+    "helmet": "^8.3.0",
+    "nodemailer": "^10.1.2"
+  }
+}
