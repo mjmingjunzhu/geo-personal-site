@@ -32,7 +32,10 @@
 
 ### 1. 安装 Node.js
 
-到 [nodejs.org](https://nodejs.org) 下载安装 **LTS 版本**（18 或更高）。
+到 [nodejs.org](https://nodejs.org) 下载安装最新的 **LTS 版本**。生成和预览网站需要 18 或更高；联系表单用到 Node 自带的数据库，需要 22.13 或更高。直接装最新 LTS 两样都满足。
+
+> 整个项目不依赖任何需要现场编译的组件，普通电脑不用装 Python 或 Visual Studio 也能装好。
+> 国内网络安装依赖慢的话，可以先运行 `npm config set registry https://registry.npmmirror.com` 换成国内镜像。
 
 ### 2. 下载这个项目
 
@@ -96,7 +99,7 @@ node serve.js
 
 ## 联系表单（可选）
 
-不配置也没关系：网站照样能看，表单提交时会提示访客改用邮件联系。想让表单真正收留言：
+不配置也没关系：网站照样能看，表单提交时会提示访客改用邮件联系。想让表单真正收留言（需要 Node.js 22.13 或更高）：
 
 1. 复制 `.env.example`，改名为 `.env`，按里面的注释填好邮箱的 SMTP 信息和后台口令
 2. 启动后端：

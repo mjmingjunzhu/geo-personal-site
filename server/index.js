@@ -2,7 +2,8 @@
  * 联系表单后端（可选）—— 收留言、存进 SQLite、发邮件通知
  * ---------------------------------------------------------------------------
  *  - Node 原生 http，不引入 Web 框架
- *  - better-sqlite3 单文件数据库（server/data/leads.db）
+ *  - Node.js 自带的 SQLite（node:sqlite，需要 Node 22.13 及以上），单文件数据库 server/data/leads.db
+ *    不依赖任何需要现场编译的组件，普通电脑 npm install 就能装好
  *  - helmet 提供基础安全响应头
  *  - 配置全部来自 .env（复制 .env.example 后填写）
  *
@@ -11,13 +12,19 @@
  */
 'use strict';
 
+// node:sqlite 目前仍被 Node 标为实验特性，启动时会打印一行提示，容易被误以为出错，这里只屏蔽这一条
+const emitWarning = process.emitWarning;
+process.emitWarning = (warning, ...rest) => {
+    if (String(warning).includes('SQLite is an experimental feature')) return;
+    return emitWarning.call(process, warning, ...rest);
+};
+
 require('dotenv').config();
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const Database = require('better-sqlite3');
 const nodemailer = require('nodemailer');
 const helmet = require('helmet');
 
@@ -47,8 +54,17 @@ const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET || '';
 // ---------------------------------------------------------------------------
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+let DatabaseSync;
+try {
+    ({ DatabaseSync } = require('node:sqlite'));
+} catch {
+    console.error('[错误] 当前 Node.js 版本不支持内置数据库（node:sqlite）。');
+    console.error('       请到 https://nodejs.org 安装最新的 LTS 版本（22.13 或更高）后再启动。');
+    process.exit(1);
+}
+
+const db = new DatabaseSync(DB_PATH);
+db.exec('PRAGMA journal_mode = WAL');
 db.exec(`
     CREATE TABLE IF NOT EXISTS leads (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
