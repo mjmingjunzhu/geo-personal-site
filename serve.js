@@ -99,31 +99,53 @@ const MIME = {
   '.woff2': 'font/woff2',
 };
 
-/** 判断某端口是否已被本项目占用（首页特征检测） */
+/**
+ * 判断某端口上运行的是不是「这一个」项目：把它返回的首页和本地 public/index.html 逐字比较。
+ * 只看"像不像"会出错：别的网站（包括用同一个框架做的其他网站）也有类似的页面结构。
+ */
 function probeExisting(port) {
+  let local;
+  try {
+    local = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  } catch {
+    return Promise.resolve(false);
+  }
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (!settled) {
+        settled = true;
+        resolve(value);
+      }
+    };
     const req = http.get(
       { host: '127.0.0.1', port, path: '/index.html', timeout: 1200 },
       (res) => {
         let body = '';
+        res.setEncoding('utf8');
         res.on('data', (c) => {
           body += c;
-          if (body.length > 4000) req.destroy();
+          if (body.length > local.length + 1024) {
+            finish(false);
+            req.destroy();
+          }
         });
-        // 首页里有结构化数据，就认为是本项目生成的网站
-        res.on('end', () => resolve(body.includes('application/ld+json')));
-        res.on('error', () => resolve(false));
+        res.on('end', () => finish(body === local));
+        res.on('error', () => finish(false));
+        res.on('close', () => finish(false));
       }
     );
-    req.on('error', () => resolve(false));
+    req.on('error', () => finish(false));
     req.on('timeout', () => {
+      finish(false);
       req.destroy();
-      resolve(false);
     });
   });
 }
 
 function openBrowser(url) {
+  // 设置环境变量 NO_OPEN=1 可以不自动打开浏览器（给 AI Agent 或自动化脚本用）
+  if (process.env.NO_OPEN) return;
   const cmd = process.platform === 'win32' ? 'start ""' : (process.platform === 'darwin' ? 'open' : 'xdg-open');
   exec(`${cmd} "${url}"`, () => {});
 }
