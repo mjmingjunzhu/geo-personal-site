@@ -1,2 +1,6 @@
 # Windows 批处理文件必须是 CRLF 换行，否则 cmd 可能解析出错
 *.bat text eol=crlf
+# 给小白用记事本打开的文本文件，统一用 Windows 换行
+*.txt text eol=crlf
+# 在 Linux 服务器上运行的脚本必须是 LF 换行，否则 bash 会报错
+*.sh text eol=lf

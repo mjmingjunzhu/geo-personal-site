@@ -5,6 +5,9 @@ node_modules/
 .env
 .env.*
 !.env.example
+# 服务器登录信息和服务器指纹，只留在本机
+deploy.env
+deploy.known_hosts.json
 # 线索数据库目录整个不入库（含 leads.db 及其备份）
 server/data/
 *.db
@@ -13,6 +16,11 @@ server/data/
 
 # 构建产物（由 npm run build 从 src/ 重建）
 public/
+
+# 使用者自己放的资料（简历、照片、文章等）只留在本机，不上传；只保留两份说明文件
+我的资料/*
+!我的资料/说明.md
+!我的资料/填写清单.md
 
 # 备份文件
 *.bak

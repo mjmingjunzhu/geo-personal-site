@@ -55,6 +55,9 @@ if exist ".env" (
 )
 
 echo [3/3] 正在打开本地预览，浏览器会自动弹出...
+if exist "public\start.html" (
+    echo       现在还是示例网站，浏览器会先打开「上手指南」，照着三步做就能换成你自己的。
+)
 echo       关闭这个窗口，预览就会停止。
 echo.
 node serve.js

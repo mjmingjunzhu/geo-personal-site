@@ -146,6 +146,8 @@ function probeExisting(port) {
 function openBrowser(url) {
   // 设置环境变量 NO_OPEN=1 可以不自动打开浏览器（给 AI Agent 或自动化脚本用）
   if (process.env.NO_OPEN) return;
+  // 还是示例内容时会生成上手指南页，直接打开它，告诉新用户下一步怎么做
+  if (fs.existsSync(path.join(ROOT, 'start.html'))) url += '/start.html';
   const cmd = process.platform === 'win32' ? 'start ""' : (process.platform === 'darwin' ? 'open' : 'xdg-open');
   exec(`${cmd} "${url}"`, () => {});
 }
@@ -264,7 +266,7 @@ async function boot() {
     console.log(`  API ：/api/*  →  ${API_ORIGIN}（已启用反向代理）`);
     console.log(`  后台：/admin   →  ${API_ORIGIN}`);
   }
-  console.log('  浏览器即将自动打开…');
+  if (!process.env.NO_OPEN) console.log('  浏览器即将自动打开…');
   console.log('');
   console.log('  【关闭方法】直接关闭本窗口，服务即停止。');
   console.log('');

@@ -99,6 +99,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     .site-nav { order: 3; width: 100%; overflow-x: auto; gap: 20px; }
 }
 
+/* ---------- 示例提示条与上手指南（换成自己的内容后不会再出现）---------- */
+.guide-bar { background: var(--zhu-soft); border-bottom: 1px solid var(--zhu-dim); font-size: 14px; line-height: 1.6; }
+.guide-bar .wrap { padding-top: 10px; padding-bottom: 10px; }
+.guide-bar a { color: var(--zhu); font-weight: 650; text-decoration: none; margin-left: 6px; white-space: nowrap; }
+.guide-bar a:hover { text-decoration: underline; }
+.prompt-box { max-width: 46rem; padding: 20px; border: 1px solid var(--zhu-dim); border-radius: 14px; background: var(--bg); }
+.prompt { margin: 0 0 16px; white-space: pre-wrap; word-break: break-word; font: 400 14.5px/1.85 var(--mono); color: var(--text); }
+
 /* ---------- 通用 ---------- */
 .band { padding: clamp(56px, 8vw, 96px) 0; }
 .band.alt { background: var(--panel); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }

@@ -29,6 +29,9 @@ const esc = (s) => String(s)
 
 const NAME = author.name;
 const YEAR = new Date().getFullYear();
+
+// 还是示例内容时（名字没改），自动生成「上手指南」页，并在每页顶部加一条提示；换成自己的内容后两者都会消失
+const SHOW_GUIDE = NAME === '你的名字';
 const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#b0341c"/><text x="32" y="44" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="36" font-weight="500" text-anchor="middle" fill="#fff7ef">${esc(site.faviconText || NAME.slice(0, 1))}</text></svg>`;
 
 const sortedArticles = [...articles].sort((a, b) => b.date.localeCompare(a.date));
@@ -175,7 +178,8 @@ function layout({ title, desc, canonical, jsonLdGraph, content, robots, breadcru
     ${jsonLdScript}
 </head>
 <body${nav === 'home' ? ' class="home"' : ''}>
-    <a class="skip" href="#main">跳到正文</a>
+    <a class="skip" href="#main">跳到正文</a>${SHOW_GUIDE && nav !== 'start' ? `
+    <div class="guide-bar"><div class="wrap">这是示例网站，内容还没换成你的。<a href="/start.html">看看怎么用 AI 几分钟把它变成你自己的网站 →</a></div></div>` : ''}
     <header class="site-head">
         <div class="head-inner">
             <a class="brand" href="/" aria-label="${esc(NAME)}｜回到首页">
@@ -1147,6 +1151,160 @@ ${relatedCta(w, '// 你也在做这件事？')}${relatedHtml}
         <div class="spacer"></div>`
     }));
 });
+
+// ---------- 上手指南（只在还是示例内容时生成，不进 sitemap，不让搜索引擎收录）----------
+if (SHOW_GUIDE) {
+    // 提示语从项目根目录的「交给AI的提示语.txt」里读取（每段在两行 ===== 之间），保证网页和文件里的一致
+    const prompts = {
+        content: '请先完整阅读项目根目录的 AGENTS.md，按里面的规则工作。我的资料在「我的资料」文件夹里，请先读完，缺的信息一次性问我，不要替我编造。改完后生成网站并打开预览给我看。',
+        deploy: '请先完整阅读项目根目录的 AGENTS.md 和 DEPLOY.md，按「第三阶段：部署上线」帮我把网站部署到我自己的服务器上。需要我提供的信息一次性问我，上线后告诉我网址和还没做完的事。'
+    };
+    try {
+        const txt = fs.readFileSync(path.join(__dirname, '../交给AI的提示语.txt'), 'utf8');
+        const blocks = [...txt.matchAll(/={5,}\r?\n([\s\S]*?)\r?\n={5,}/g)].map(m => m[1].trim());
+        prompts.content = blocks.find(b => b.includes('我的资料')) || prompts.content;
+        prompts.deploy = blocks.find(b => b.includes('部署')) || prompts.deploy;
+    } catch { /* 文件不在就用上面的默认提示语 */ }
+
+    const promptBox = (id, text) => `
+                <div class="prompt-box">
+                    <pre class="prompt" id="${id}">${esc(text)}</pre>
+                    <button class="btn" type="button" data-copy="${id}">复制这段话</button>
+                </div>`;
+
+    const guideFaq = [
+        { q: "我的资料会被上传到网上吗？", a: "不会。「我的资料」文件夹只在你自己的电脑上。AI 助手只是在你电脑上读这些文件，把需要公开的内容写进网站。部署上线时只上传生成好的网页，以后你用 Git 上传网站代码时，这个文件夹里除了两份说明文件，其他东西默认也不会被上传。" },
+        { q: "网页版的豆包、DeepSeek 能用吗？", a: "能聊天，但不能直接改你电脑上的文件，需要你手动复制粘贴。下面的「备用方法」写了具体怎么做。能直接改文件的 AI 助手会省事很多。" },
+        { q: "改坏了怎么办？", a: "还没上线：把报错信息发给 AI 助手让它修，实在不行，重新下载一份这个网站，把「我的资料」文件夹复制过去再来一遍。已经上线：运行 npm run deploy -- --rollback，网站会退回上一个版本。" },
+        { q: "这个指南页什么时候消失？", a: "网站里的名字换成你自己的之后，重新生成（双击「一键启动.bat」），这个指南页和每页顶部的提示条就会自动消失，不会被带到线上。" },
+        { q: "没有服务器和域名，能先做网站吗？", a: "能。前三步都在你自己电脑上完成，不花钱。等内容满意了再买服务器和域名。买之前先看项目里的 DEPLOY.md：服务器选中国大陆还是香港，差别主要在备案。" },
+        { q: "上线之后，AI 和搜索引擎多久能找到我？", a: "网站本身已经为搜索引擎和 AI 做好了准备：正文直接写在网页里，还有结构化数据、sitemap 和 llms.txt。上线后把 sitemap 提交到必应、百度、Google 的站长平台，一般几天到几周开始被收录。之后持续更新真实的实操记录，比什么技巧都有用。" }
+    ];
+
+    fs.writeFileSync(path.join(PUBLIC_DIR, 'start.html'), layout({
+        title: `上手指南：把示例网站变成你自己的 - ${site.name}`,
+        desc: "不用写代码：准备资料、交给 AI 助手、检查效果、部署上线，四步把示例网站换成你自己的个人网站。",
+        canonical: `${DOMAIN}/start.html`,
+        jsonLdGraph: [],
+        robots: "noindex, nofollow",
+        nav: 'start',
+        content: `
+        <div class="wrap">
+            <header class="page-head">
+                <p class="kicker"><b>~/</b> 上手指南</p>
+                <h1>把它变成你自己的网站</h1>
+                <p class="lead">你现在看到的是示例网站。不用写代码：准备资料、交给 AI 助手、检查效果、部署上线，四步就能变成你自己的、能被搜索引擎和 AI 找到的网站。</p>
+            </header>
+        </div>
+
+        <section class="band alt tight" aria-label="四个步骤">
+            <div class="wrap">
+                <ol class="steps">
+                    <li><b>准备资料</b><p>把简历、照片、文章、二维码放进「我的资料」文件夹，或者照着里面的「填写清单.md」填空。</p></li>
+                    <li><b>交给 AI 助手</b><p>用能读写电脑文件的 AI 助手打开这个文件夹，把下面那段话复制发给它。</p></li>
+                    <li><b>检查效果</b><p>AI 改完后，双击「一键启动.bat」，看到的就是你自己的网站。</p></li>
+                    <li><b>部署上线</b><p>内容满意了，再让 AI 助手把网站部署到你自己的服务器和域名上。</p></li>
+                </ol>
+            </div>
+        </section>
+
+        <section class="band" aria-labelledby="g1">
+            <div class="wrap">${secHead('g1', '第一步', '准备资料', '在这个网站文件夹里，找到「我的资料」文件夹。资料可以是任何格式：Word、PDF、文字、截图、照片都行。')}
+                <div class="prose">
+                    <table>
+                        <thead><tr><th>资料</th><th>举例</th><th>必需吗</th></tr></thead>
+                        <tbody>
+                            <tr><td>自我介绍</td><td>简历、一段文字、介绍截图</td><td>必需</td></tr>
+                            <tr><td>邮箱</td><td>别人联系你用的邮箱</td><td>必需</td></tr>
+                            <tr><td>正在做的事</td><td>2～4 件，每件一句话说清是什么、对谁有用</td><td>建议</td></tr>
+                            <tr><td>项目和文章</td><td>项目介绍、写过的文章或公众号链接，至少各一个</td><td>建议</td></tr>
+                            <tr><td>照片和头像</td><td>一张竖版本人照片、一张正方形头像</td><td>建议</td></tr>
+                            <tr><td>其他联系方式</td><td>微信号或二维码、公众号、抖音 / 小红书 / GitHub 主页</td><td>可选</td></tr>
+                            <tr><td>域名、备案号</td><td>没有可以先空着</td><td>可选</td></tr>
+                        </tbody>
+                    </table>
+                    <p>不知道放什么，就打开「我的资料」文件夹里的「填写清单.md」，用记事本照着填空。写真实、写具体就行，不用写得漂亮。</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="band alt" aria-labelledby="g2">
+            <div class="wrap">${secHead('g2', '第二步', '交给 AI 助手', '需要一个能读写你电脑上文件的 AI 助手，例如 WorkBuddy、Trae、CodeBuddy、Cursor、Claude Code、Codex。用它打开这个网站文件夹，然后把下面这段话发给它：')}${promptBox('prompt-content', prompts.content)}
+                <p class="note">这段话也保存在网站文件夹里的「交给AI的提示语.txt」中。AI 会先读项目里的 AGENTS.md（写给 AI 的规则），再读你的资料；缺什么会一次性问你，不会替你编造。</p>
+            </div>
+        </section>
+
+        <section class="band" aria-labelledby="g3">
+            <div class="wrap">${secHead('g3', '第三步', '检查效果', 'AI 改完后，双击网站文件夹里的「一键启动.bat」（Mac 用户在终端运行 npm run build 和 node serve.js），浏览器里打开的就是你自己的网站。逐页看一遍，哪里不满意，直接用大白话告诉 AI 助手再改。')}
+            </div>
+        </section>
+
+        <section class="band alt" aria-labelledby="g6">
+            <div class="wrap">${secHead('g6', '第四步', '部署上线', '内容满意了，就可以上线。你需要准备两样东西，其余的交给 AI 助手和部署脚本：')}
+                <div class="prose">
+                    <table>
+                        <thead><tr><th>准备什么</th><th>说明</th></tr></thead>
+                        <tbody>
+                            <tr><td>一台云服务器</td><td>阿里云、腾讯云的「轻量应用服务器」就够用，系统选 Ubuntu 22.04 或 24.04。买好后记下公网 IP 和登录密码。</td></tr>
+                            <tr><td>一个域名</td><td>买好后完成实名认证。没有域名也能先用 IP 上线看效果，但搜索引擎和 AI 收录需要域名。</td></tr>
+                        </tbody>
+                    </table>
+                    <p>服务器选中国大陆的，域名必须先做 ICP 备案（一般要一到三周）才能访问；选中国香港或海外的不用备案，当天就能上线。详细对比见项目里的 DEPLOY.md。</p>
+                </div>${promptBox('prompt-deploy', prompts.deploy)}
+                <p class="note">AI 助手会帮你填好服务器信息，运行部署脚本：自动安装 Nginx、上传网站、申请免费的 HTTPS 证书。以后改完内容，再运行一次就更新了；想自己操作，填好 deploy.env 后双击「一键上线.bat」。</p>
+            </div>
+        </section>
+
+        <section class="band" aria-labelledby="g4">
+            <div class="wrap">${secHead('g4', '备用方法', '没有能改文件的 AI 助手？', '用网页版的豆包或 DeepSeek 也可以，只是要手动复制粘贴：')}
+                <div class="prose">
+                    <ol>
+                        <li>照着「我的资料」里的「填写清单.md」填好。</li>
+                        <li>用记事本打开 <code>src/data.js</code>，全选、复制。</li>
+                        <li>把填好的清单和 data.js 的内容一起发给 AI，并说：「请根据我的填写清单，修改这个 data.js 里的内容，保持代码结构和字段不变，把所有『示例』内容换成我的，只输出完整的新 data.js。」</li>
+                        <li>把它给你的新内容覆盖 <code>src/data.js</code> 原来的全部内容，保存。</li>
+                        <li>双击「一键启动.bat」查看效果；如果出错，把错误信息发给 AI 让它改。</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <section class="band alt" aria-labelledby="g5">
+            <div class="wrap">${secHead('g5', '常见问题', '你可能还想问')}${faqList(guideFaq)}
+            </div>
+        </section>
+
+        <script>
+        (function () {
+            Array.prototype.forEach.call(document.querySelectorAll('[data-copy]'), function (btn) {
+                var text = document.getElementById(btn.getAttribute('data-copy')).textContent;
+                function done(label) { btn.textContent = label; setTimeout(function () { btn.textContent = '复制这段话'; }, 1800); }
+                // 有的浏览器不允许 navigator.clipboard，就用老办法：放进一个临时文本框再复制
+                function fallback() {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    var ok = false;
+                    try { ok = document.execCommand('copy'); } catch (e) {}
+                    document.body.removeChild(ta);
+                    done(ok ? '已复制，去发给 AI 吧' : '复制失败，请手动选中上面的文字复制');
+                }
+                btn.addEventListener('click', function () {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(text).then(function () { done('已复制，去发给 AI 吧'); }, fallback);
+                    } else {
+                        fallback();
+                    }
+                });
+            });
+        })();
+        </script>`
+    }));
+}
 
 // ---------- 10. 404 ----------
 fs.writeFileSync(path.join(PUBLIC_DIR, '404.html'), layout({
